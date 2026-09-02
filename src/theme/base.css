@@ -1,0 +1,301 @@
+/* ===== 全局基础样式：马戏团桌面 ===== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--cream);
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 0%, var(--felt-light) 0%, var(--felt) 45%, var(--felt-dim) 100%);
+  overflow: hidden;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 桌沿木纹边框 */
+#app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  border: 6px solid transparent;
+  border-image: repeating-linear-gradient(
+      45deg,
+      var(--wood) 0 12px,
+      #6e482c 12px 24px
+    )
+    6;
+  z-index: 60;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  background: none;
+  color: inherit;
+}
+
+/* ===== 通用微交互：按钮按压/悬停（Figma 式 spring 反馈） ===== */
+.btn,
+.act,
+.seg-btn,
+.toggle,
+.mini-btn,
+.icon-btn {
+  transition:
+    transform var(--dur-fast) var(--ease-pop),
+    box-shadow var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+.btn:hover:not(:disabled),
+.act:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn:active:not(:disabled),
+.act:active:not(:disabled),
+.seg-btn:active,
+.toggle:active,
+.avatar-cell:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--red);
+  color: var(--white);
+  box-shadow:
+    0 3px 0 var(--red-deep),
+    0 6px 12px rgba(0, 0, 0, 0.3);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(2px) scale(0.98);
+  box-shadow: 0 1px 0 var(--red-deep), 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+.btn:disabled {
+  filter: grayscale(0.8) brightness(0.7);
+  cursor: not-allowed;
+}
+.btn.gold {
+  background: var(--gold);
+  color: #4a3208;
+  box-shadow: 0 3px 0 var(--gold-deep), 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+.btn.ghost {
+  background: rgba(247, 239, 221, 0.12);
+  color: var(--cream);
+  box-shadow: inset 0 0 0 1.5px rgba(247, 239, 221, 0.35);
+}
+
+.title-font {
+  font-family: var(--font-title);
+}
+
+/* 通用面板 */
+.panel {
+  background: rgba(10, 30, 22, 0.72);
+  border-radius: var(--radius-panel);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(247, 239, 221, 0.14),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+/* 聚光灯（当前行动玩家）——双层光晕呼吸 */
+@keyframes spotlight {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 14px 1px rgba(233, 178, 60, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2.5px var(--gold),
+      0 0 24px 5px rgba(233, 178, 60, 0.6);
+  }
+}
+.spotlight {
+  animation: spotlight 1.8s var(--ease-in-out) infinite;
+}
+
+/* AI 思考脉冲 */
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+.thinking {
+  animation: pulse 1.1s var(--ease-in-out) infinite;
+}
+
+/* ===== 入场编排 ===== */
+/* 发牌/出场：减速滑入（Figma 标准出场曲线，带轻微旋转弧线） */
+@keyframes card-in {
+  from {
+    transform: translateY(26px) scale(0.92) rotate(var(--deal-rot, 0deg));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+.card-in {
+  animation: card-in var(--dur-deal) var(--ease-out) both;
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pop-in {
+  animation: pop-in var(--dur-mid) var(--ease-pop) both;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.slide-up {
+  animation: slide-up var(--dur-mid) var(--ease-out) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in var(--dur-fast) var(--ease-out) both;
+}
+
+/* 弹层卡片：背景淡入 + 卡片弹性缩放上浮 */
+@keyframes dialog-in {
+  from {
+    transform: translateY(10px) scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.dialog-in {
+  animation: dialog-in var(--dur-slow) var(--ease-pop) both;
+}
+
+/* ===== 视图转场（主页/对局/规则/设置切换） ===== */
+@keyframes view-in {
+  from {
+    transform: translateY(10px) scale(0.995);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes view-out {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(6px) scale(0.995);
+    opacity: 0;
+  }
+}
+.view-enter-active {
+  animation: view-in var(--dur-mid) var(--ease-out) both;
+}
+.view-leave-active {
+  animation: view-out var(--dur-xs) var(--ease-out) both;
+}
+
+/* ===== 手牌 FLIP（TransitionGroup）：挖角插牌时邻牌滑开 ===== */
+.hand-move {
+  transition: transform var(--dur-slow) var(--ease-pop);
+}
+.hand-enter-active {
+  animation: card-in var(--dur-deal) var(--ease-out) both;
+}
+.hand-leave-active {
+  position: absolute;
+  animation: fade-in var(--dur-fast) var(--ease-out) reverse both;
+}
+
+/* toast */
+@keyframes toast-in {
+  from {
+    transform: translateX(-50%) translateY(-10px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  top: 14%;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--white);
+  background: rgba(20, 20, 18, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  animation: toast-in var(--dur-mid) var(--ease-pop) both;
+}
+.toast.warn {
+  background: rgba(176, 48, 31, 0.92);
+}
+.toast.good {
+  background: rgba(42, 99, 80, 0.95);
+}

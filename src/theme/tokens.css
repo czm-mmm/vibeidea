@@ -1,0 +1,88 @@
+/* ===== SCOUT 单机版 design tokens =====
+   色板提取自 Oink 国际版实物：奶油卡纸、深绿桌面、马戏红、奖杯金。
+   数字 1~10 各一色（暖→冷），卡面波浪双域各取对应数字色。 */
+
+:root {
+  /* 桌面与全局 */
+  --felt: #1e4d3b;        /* 桌面深绿 */
+  --felt-dim: #143528;
+  --felt-light: #2a6350;
+  --wood: #5b3a24;        /* 桌沿木纹 */
+  --cream: #f7efdd;       /* 卡面奶油纸 */
+  --cream-dim: #e7dcc3;
+  --ink: #241f1c;         /* 主墨色 */
+  --ink-soft: #4a423c;
+  --white: #fffdf6;
+
+  /* 强调 */
+  --red: #d9432f;         /* 马戏团红 */
+  --red-deep: #b0301f;
+  --gold: #e9b23c;        /* 奖杯金 */
+  --gold-deep: #b9831f;
+  --teal: #3aa6a0;
+  --purple: #7b61ff;
+
+  /* 数字色带（1~10，暖→冷，色盲时数字本身是主信息） */
+  --n1: #e0503c;
+  --n2: #ef8b33;
+  --n3: #e3b33d;
+  --n4: #6fa84b;
+  --n5: #3aa6a0;
+  --n6: #3e7cc0;
+  --n7: #5e5ea8;
+  --n8: #7b61ff;
+  --n9: #c74fa0;
+  --n10: #8c5a3c;
+
+  /* 形状与动效（Figma 风格：统一档位 + 标准/弹性双缓动，只动 transform 与 opacity） */
+  --radius-card: 10px;
+  --radius-chip: 50%;
+  --radius-panel: 14px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);   /* 标准减速：入场/位移 */
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性：选中/弹层/微交互 */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* 循环/呼吸 */
+  --dur-xs: 120ms;
+  --dur-fast: 160ms;
+  --dur-mid: 240ms;
+  --dur-slow: 360ms;
+  --dur-deal: 480ms;
+
+  /* 字体 */
+  --font-num: 'Alfa Slab One', 'Baloo 2', serif;
+  --font-title: 'Rye', 'Alfa Slab One', serif;
+  --font-ui: -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+
+  /* 布局尺寸 */
+  --card-w: 64px;
+  --card-h: 90px;
+  --seat-chip: 34px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-xs: 0ms;
+    --dur-fast: 0ms;
+    --dur-mid: 0ms;
+    --dur-slow: 0ms;
+    --dur-deal: 0ms;
+    --ease-pop: ease;
+  }
+}
+
+/* 动画速度设置（Settings 可调，覆盖在 html.speed-* 上） */
+html.speed-slow { --dur-xs: 200ms; --dur-fast: 260ms; --dur-mid: 420ms; --dur-slow: 620ms; --dur-deal: 820ms; }
+html.speed-off { --dur-xs: 0ms; --dur-fast: 0ms; --dur-mid: 0ms; --dur-slow: 0ms; --dur-deal: 0ms; }
+
+/* 色盲/高对比模式：数字描边加粗、波浪降饱和 */
+html.cb {
+  --n1: #d94f3d;
+  --n2: #d97b1f;
+  --n3: #b98f00;
+  --n4: #4f8f2f;
+  --n5: #1f8f89;
+  --n6: #2f5fb0;
+  --n7: #4a4a99;
+  --n8: #6a4fd0;
+  --n9: #b03a8f;
+  --n10: #6a4223;
+}
