@@ -284,9 +284,14 @@ const scoutedCard = computed(() => {
 }
 .insert-card {
   flex: none;
+  position: relative;
+  z-index: 1;
 }
 .insert-gap {
-  flex: 0 0 42px;
+  position: relative;
+  z-index: 2;
+  flex: 0 0 40px;
+  margin-inline: -7px;
   height: 72px;
   display: flex;
   flex-direction: column;
@@ -308,8 +313,8 @@ const scoutedCard = computed(() => {
 .gap-plus {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: rgba(233, 178, 60, 0.2);
   box-shadow:
@@ -317,7 +322,7 @@ const scoutedCard = computed(() => {
     0 3px 10px rgba(0, 0, 0, 0.3);
   color: var(--gold);
   font-weight: 800;
-  font-size: 20px;
+  font-size: 19px;
   font-family: var(--font-num);
   transition: transform var(--dur-fast) var(--ease-pop), background var(--dur-fast);
 }
@@ -325,6 +330,9 @@ const scoutedCard = computed(() => {
   color: var(--gold);
   font-family: var(--font-ui);
   font-weight: 800;
+}
+.insert-gap.edge {
+  margin-inline: -4px;
 }
 .insert-gap:active .gap-plus {
   transform: scale(0.9);
@@ -346,16 +354,20 @@ const scoutedCard = computed(() => {
     padding: 0 12px;
   }
   .insert-gap {
-    flex-basis: 50px;
+    flex-basis: 44px;
+    margin-inline: -8px;
     height: 98px;
   }
   .gap-pair {
     font-size: 12px;
   }
   .gap-plus {
-    width: 36px;
-    height: 36px;
-    font-size: 23px;
+    width: 32px;
+    height: 32px;
+    font-size: 21px;
+  }
+  .insert-gap.edge {
+    margin-inline: -5px;
   }
 }
 </style>
