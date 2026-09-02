@@ -9,6 +9,7 @@ const game = useGameStore()
 const isWide = useIsWide()
 const wrap = ref<HTMLElement | null>(null)
 const cardWidth = computed(() => (isWide.value ? 84 : 62))
+const insertCardWidth = computed(() => (isWide.value ? 70 : 52))
 const wrapWidth = ref(360)
 
 const realHand = computed(() => (game.state ? game.state.players[game.humanSeat].hand : []))
@@ -62,6 +63,23 @@ function hintAt(i: number): 'run' | 'group' | null {
   return game.legalHintMap.get(i) ?? null
 }
 
+/** 插牌按钮直接写相邻牌的当前数字，避免依赖位置编号数牌。 */
+function gapLabel(afterIndex: number) {
+  const left = hand.value[afterIndex]
+  const right = hand.value[afterIndex + 1]
+  if (!left) return '最左'
+  if (!right) return '最右'
+  return `${left.top}│${right.top}`
+}
+
+function gapAriaLabel(afterIndex: number) {
+  const left = hand.value[afterIndex]
+  const right = hand.value[afterIndex + 1]
+  if (!left) return '插到手牌最左侧'
+  if (!right) return `插到数字 ${left.top} 后面，也就是手牌最右侧`
+  return `插到数字 ${left.top} 和 ${right.top} 之间`
+}
+
 /** 插入模式下：被侦察的牌（按当前 flip 设置预览朝向） */
 const scoutedCard = computed(() => {
   const s = game.state
@@ -79,7 +97,7 @@ const scoutedCard = computed(() => {
       <template v-if="insertMode && scoutedCard">
         <div class="scout-banner">
           <CardFace :card="scoutedCard" :width="34" />
-          <span>点下面的位置编号插入</span>
+          <span>横向滑动，点牌缝里的 ＋</span>
           <button class="mini-btn" :class="{ on: flipOn }" @click="game.toggleScoutFlip()">
             ↻ 翻转{{ flipOn ? '（已翻）' : '' }}
           </button>
@@ -99,7 +117,7 @@ const scoutedCard = computed(() => {
       </template>
     </div>
 
-    <TransitionGroup name="hand" tag="div" class="cards">
+    <TransitionGroup v-if="!insertMode" name="hand" tag="div" class="cards">
       <div
         v-for="(c, i) in hand"
         :key="`${c.top}-${c.bottom}-${i}`"
@@ -117,15 +135,39 @@ const scoutedCard = computed(() => {
       </div>
     </TransitionGroup>
 
-    <div v-if="insertMode" class="insert-strip pop-in">
-      <button
-        v-for="i in hand.length + 1"
-        :key="`pos-${i}`"
-        class="pos"
-        @click="game.pickScoutInsert(i - 1)"
-      >
-        {{ i }}
-      </button>
+    <div v-else class="insert-picker pop-in">
+      <div class="insert-guide">
+        <span>把</span>
+        <b class="picked-value">{{ scoutedCard?.top }}</b>
+        <span>插进目标牌缝</span>
+      </div>
+      <div class="insert-scroll">
+        <div class="insert-track">
+          <button
+            class="insert-gap edge"
+            aria-label="插到手牌最左侧"
+            @click="game.pickScoutInsert(0)"
+          >
+            <span class="gap-pair">最左</span>
+            <span class="gap-plus">＋</span>
+          </button>
+
+          <template v-for="(c, i) in hand" :key="`insert-${c.top}-${c.bottom}-${i}`">
+            <div class="insert-card">
+              <CardFace :card="c" :width="insertCardWidth" />
+            </div>
+            <button
+              class="insert-gap"
+              :class="{ edge: i === hand.length - 1 }"
+              :aria-label="gapAriaLabel(i)"
+              @click="game.pickScoutInsert(i + 1)"
+            >
+              <span class="gap-pair">{{ gapLabel(i) }}</span>
+              <span class="gap-plus">＋</span>
+            </button>
+          </template>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -202,25 +244,90 @@ const scoutedCard = computed(() => {
 .card-slot:active .card-face {
   transform: translateY(2px) scale(0.98);
 }
-.insert-strip {
+.insert-picker {
+  padding: 4px 0 3px;
+}
+.insert-guide {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 4px 6px;
+  min-height: 24px;
+  color: var(--cream-dim);
+  font-size: 12px;
+  font-weight: 700;
 }
-.pos {
-  min-width: 34px;
-  height: 34px;
+.picked-value {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: rgba(233, 178, 60, 0.16);
-  box-shadow: inset 0 0 0 1.5px var(--gold);
+  background: var(--gold);
+  color: #3b2808;
+  font-family: var(--font-num);
+  font-size: 14px;
+}
+.insert-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 178, 60, 0.65) rgba(0, 0, 0, 0.18);
+  padding: 5px 0 7px;
+}
+.insert-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 6px;
+}
+.insert-card {
+  flex: none;
+}
+.insert-gap {
+  flex: 0 0 42px;
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 2px;
+  color: var(--cream);
+  background: transparent;
+}
+.gap-pair {
+  min-height: 12px;
+  color: var(--cream-dim);
+  font-family: var(--font-num);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.gap-plus {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(233, 178, 60, 0.2);
+  box-shadow:
+    inset 0 0 0 2px var(--gold),
+    0 3px 10px rgba(0, 0, 0, 0.3);
   color: var(--gold);
   font-weight: 800;
-  font-size: 14px;
+  font-size: 20px;
   font-family: var(--font-num);
+  transition: transform var(--dur-fast) var(--ease-pop), background var(--dur-fast);
 }
-.pos:active {
+.insert-gap.edge .gap-pair {
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-weight: 800;
+}
+.insert-gap:active .gap-plus {
+  transform: scale(0.9);
   background: var(--gold);
   color: #4a3208;
 }
@@ -235,13 +342,20 @@ const scoutedCard = computed(() => {
   .cards {
     min-height: 128px;
   }
-  .insert-strip {
-    gap: 10px;
+  .insert-track {
+    padding: 0 12px;
   }
-  .pos {
-    min-width: 40px;
-    height: 40px;
-    font-size: 16px;
+  .insert-gap {
+    flex-basis: 50px;
+    height: 98px;
+  }
+  .gap-pair {
+    font-size: 12px;
+  }
+  .gap-plus {
+    width: 36px;
+    height: 36px;
+    font-size: 23px;
   }
 }
 </style>

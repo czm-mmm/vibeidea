@@ -19,9 +19,15 @@
 
 ## 画面预览
 
-| 开始界面 | 开局整手旋转预览 |
-| --- | --- |
-| ![SCOUT 开始界面](docs/images/home.png) | ![SCOUT 开局整手旋转预览](docs/images/flip-preview.png) |
+### 开始界面
+
+![SCOUT 高清开始界面](docs/images/home.png)
+
+### 挖角后按牌缝插入
+
+插入按钮直接位于两张牌之间，并显示相邻数字；横向滑动即可定位，不需要再数位置编号。
+
+![SCOUT 高清挖角插牌界面](docs/images/insert-picker.png)
 
 ## 功能亮点
 
