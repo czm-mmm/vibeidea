@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 开局整手翻转：看过手牌后决定是否旋转 180°（一次机会）
-// 布局：上行 = 当前正面手牌；下行 = 同一副牌旋转 180° 后的物理效果（face="bottom" 整卡倒置）
-// 建议与 AI 同一把尺：B（最少出牌数）更小者优先
+// 上行 = 当前正面（大数字 A）；下行 = 旋转后看到的另一面（大数字 B，全部正立可读）
+// （官方卡面是双阅读区设计：旋转后另一端的数字成为正面大数字，并非整卡倒置）
 import { computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { betterFlip } from '@/core/metrics'
@@ -9,6 +9,7 @@ import CardFace from '@/ui/components/CardFace.vue'
 
 const game = useGameStore()
 const hand = computed(() => (game.state ? game.state.players[game.humanSeat].hand : []))
+const otherSide = computed(() => hand.value.map((c) => ({ top: c.bottom, bottom: c.top })))
 const flipBetter = computed(() => betterFlip(hand.value))
 const advice = computed(() => (flipBetter.value ? '翻转后出牌数更少' : '保持现状出牌数更少或持平'))
 </script>
@@ -17,19 +18,19 @@ const advice = computed(() => (flipBetter.value ? '翻转后出牌数更少' : '
   <div v-if="game.state?.phase === 'flip'" class="overlay fade-in">
     <div class="box panel dialog-in">
       <p class="title">第 {{ game.state.roundNumber }} 轮 · 布置马戏团</p>
-      <p class="desc">看一眼手牌，决定要不要整手旋转 180°（只有一次机会，之后顺序锁定）</p>
+      <p class="desc">看一眼手牌的两面，决定要不要整手旋转 180°（只有一次机会，之后顺序锁定）</p>
 
       <div class="side">
-        <b>当前（正面）</b>
+        <b>正面</b>
         <div class="cards">
           <CardFace v-for="(c, i) in hand" :key="`a-${i}`" :card="c" :width="44" />
         </div>
       </div>
 
       <div class="side">
-        <b>旋转 180° 后</b>
+        <b>反面（旋转 180° 后看到的一面）</b>
         <div class="cards">
-          <CardFace v-for="(c, i) in hand" :key="`b-${i}`" :card="c" face="bottom" :width="44" />
+          <CardFace v-for="(c, i) in otherSide" :key="`b-${i}`" :card="c" :width="44" />
         </div>
       </div>
 
