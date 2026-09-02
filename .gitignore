@@ -4,3 +4,5 @@ dev-dist
 .tmp
 *.local
 .DS_Store
+*.zip
+deploy-log.txt

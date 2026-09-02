@@ -1,0 +1,37 @@
+name: Bug 报告
+description: 报告可复现的界面、规则或兼容性问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: 感谢反馈。涉及规则时，请尽量写明完整牌面和操作顺序。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 实际发生了什么？你原本期待什么结果？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 选择 3 人局
+        2. ……
+        3. 出现问题
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 设备与浏览器
+      placeholder: 例如：iPhone 15 / iOS 19 / Safari
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图或补充信息
+      description: 可以直接拖入截图、录屏或日志。
