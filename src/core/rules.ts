@@ -74,9 +74,14 @@ export function structureScore(hand: readonly Card[]): number {
   return score
 }
 
-/** 整手翻转后的手牌 */
+/**
+ * 整手旋转 180° 后的手牌。
+ *
+ * 实体牌是先把整手收拢、整叠旋转，再展开：
+ * 每张牌上下两端对调，整手的左右顺序也会反转。
+ */
 export function flippedHand(hand: readonly Card[]): Card[] {
-  return hand.map((c) => ({ top: c.bottom, bottom: c.top }))
+  return [...hand].reverse().map((c) => ({ top: c.bottom, bottom: c.top }))
 }
 
 /** 中文文案：牌型标签，如「顺子 3·4·5」 */

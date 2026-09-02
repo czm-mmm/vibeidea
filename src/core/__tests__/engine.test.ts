@@ -93,13 +93,12 @@ describe('引擎：建局与动作校验', () => {
 
   it('压不过不能出', () => {
     const s = createGame(aiOnlyConfig(3))
-    // 第一手任意出，第二家必须压或侦察
+    // 构造确定的两张同数首手，不依赖洗牌或开局旋转结果。
+    s.players[0].hand[0] = { top: 5, bottom: 1 }
+    s.players[0].hand[1] = { top: 5, bottom: 2 }
     const s1 = applyAction(s, 0, { type: 'show', from: 0, to: 1 }).state
-    const combo = s1.active!.combo
-    // 构造一个必然压不过的动作：单张（张数不够）
-    if (combo.values.length >= 2) {
-      expect(() => applyAction(s1, 1, { type: 'show', from: 0, to: 0 })).toThrow(/压不过|合法牌型/)
-    }
+    // 第二家的单张张数更少，必然压不过。
+    expect(() => applyAction(s1, 1, { type: 'show', from: 0, to: 0 })).toThrow(/压不过|合法牌型/)
   })
 
   it('无牌型时不能侦察', () => {

@@ -1,17 +1,15 @@
 <script setup lang="ts">
-// 波浪卡面：按 Oink 国际版官方版式还原——
-// 白边 + 双色波浪（两色对应两端数字色）；
-// 超大数字在左上；黑色圆角小牌（另一端数字）在其正下方；
-// 顶部居中表演者姓名，底部倒印同一姓名（翻转后正好可读）；
-// 右侧节目小图标。整张牌翻转显示时整体旋转 180°，与实体牌一致。
-import { computed } from 'vue'
+// Oink 国际版的牌只有一个数字面（背面是紫色 S）。
+// 数字面上下各有一套相差 180° 的完整阅读区：大数字是当前值，
+// 黑色标签内是旋转后的值。这里同时绘制两端，不把另一端当成“牌背”。
+import { computed, useId } from 'vue'
 import type { Card } from '@/core/types'
 import { NUMBER_COLOR_VARS, ACT_ICONS, performerName } from '@/ui/art'
 
 const props = withDefaults(
   defineProps<{
     card: Card
-    /** 显示哪一端（默认 top；预览翻转时传 bottom，整卡旋转 180°） */
+    /** 哪一端位于牌面上方；常规渲染由 Card.top 决定 */
     face?: 'top' | 'bottom'
     width?: number
     selected?: boolean
@@ -21,18 +19,21 @@ const props = withDefaults(
   { face: 'top', width: 64, selected: false, hint: null, dim: false },
 )
 
-const big = computed(() => props.card[props.face])
-const small = computed(() => (props.face === 'top' ? props.card.bottom : props.card.top))
-const leftColor = computed(() => NUMBER_COLOR_VARS[big.value])
-const rightColor = computed(() => NUMBER_COLOR_VARS[small.value])
+const topValue = computed(() => props.card[props.face])
+const bottomValue = computed(() => (props.face === 'top' ? props.card.bottom : props.card.top))
+const topColor = computed(() => NUMBER_COLOR_VARS[topValue.value])
+const bottomColor = computed(() => NUMBER_COLOR_VARS[bottomValue.value])
 const height = computed(() => Math.round(props.width * 1.4))
-const icon = computed(() => ACT_ICONS[big.value])
+const topIcon = computed(() => ACT_ICONS[topValue.value])
+const bottomIcon = computed(() => ACT_ICONS[bottomValue.value])
 const name = computed(() => performerName(props.card.top, props.card.bottom))
+const clipId = `card-clip-${useId().replace(/:/g, '')}`
+
 // 整数像素字号：小尺寸下文字发虚主要来自小数 px 与柔光阴影
-const bigSize = computed(() => Math.round(props.width * 0.52))
-const tabSize = computed(() => Math.max(9, Math.round(props.width * 0.19)))
-const nameSize = computed(() => Math.max(7, Math.round(props.width * 0.12)))
-const iconSize = computed(() => Math.round(props.width * 0.22))
+const bigSize = computed(() => Math.round(props.width * 0.44))
+const tabSize = computed(() => Math.max(8, Math.round(props.width * 0.17)))
+const nameSize = computed(() => Math.max(6, Math.round(props.width * 0.105)))
+const iconSize = computed(() => Math.round(props.width * 0.18))
 </script>
 
 <template>
@@ -41,27 +42,40 @@ const iconSize = computed(() => Math.round(props.width * 0.22))
     :class="{ selected, dim, [`hint-${hint}`]: hint }"
     :style="{ width: `${width}px`, height: `${height}px` }"
   >
-    <div class="inner" :class="{ flipped: face === 'bottom' }">
+    <div class="inner">
       <svg viewBox="0 0 100 140" preserveAspectRatio="none" class="wave-bg" aria-hidden="true">
         <rect x="0" y="0" width="100" height="140" rx="9" fill="var(--cream)" />
-        <clipPath id="rr">
+        <clipPath :id="clipId">
           <rect x="4.5" y="4.5" width="91" height="131" rx="6.5" />
         </clipPath>
-        <g clip-path="url(#rr)">
-          <rect x="4.5" y="4.5" width="91" height="131" :fill="leftColor" />
-          <path d="M4.5 4.5 C 40 40, 60 100, 95.5 135.5 V 4.5 Z" :fill="rightColor" opacity="0.92" />
+        <g :clip-path="`url(#${clipId})`">
+          <rect x="4.5" y="4.5" width="91" height="131" :fill="topColor" />
+          <path d="M4.5 4.5 C 40 40, 60 100, 95.5 135.5 V 4.5 Z" :fill="bottomColor" opacity="0.92" />
           <path d="M4.5 4.5 C 40 40, 60 100, 95.5 135.5" fill="none" stroke="var(--cream)" stroke-width="5" />
         </g>
       </svg>
-      <span class="p-name top" :style="{ fontSize: `${nameSize}px` }">{{ name }}</span>
-      <span class="big-num" :style="{ fontSize: `${bigSize}px` }">{{ big }}</span>
-      <span class="alt-tab" :style="{ fontSize: `${tabSize}px` }">{{ small }}</span>
-      <span class="act" aria-hidden="true">
-        <svg :width="iconSize" :height="iconSize" viewBox="0 0 24 24" fill="none" stroke="var(--cream)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path :d="icon" />
-        </svg>
-      </span>
-      <span class="p-name bottom" :style="{ fontSize: `${nameSize}px` }">{{ name }}</span>
+
+      <div class="reading top-reading">
+        <span class="p-name" :style="{ fontSize: `${nameSize}px` }">{{ name }}</span>
+        <span class="big-num" :style="{ fontSize: `${bigSize}px` }">{{ topValue }}</span>
+        <span class="alt-tab" :style="{ color: bottomColor, fontSize: `${tabSize}px` }">{{ bottomValue }}</span>
+        <span class="act" aria-hidden="true">
+          <svg :width="iconSize" :height="iconSize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path :d="topIcon" />
+          </svg>
+        </span>
+      </div>
+
+      <div class="reading bottom-reading">
+        <span class="p-name" :style="{ fontSize: `${nameSize}px` }">{{ name }}</span>
+        <span class="big-num" :style="{ fontSize: `${bigSize}px` }">{{ bottomValue }}</span>
+        <span class="alt-tab" :style="{ color: topColor, fontSize: `${tabSize}px` }">{{ topValue }}</span>
+        <span class="act" aria-hidden="true">
+          <svg :width="iconSize" :height="iconSize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path :d="bottomIcon" />
+          </svg>
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -86,9 +100,6 @@ const iconSize = computed(() => Math.round(props.width * 0.22))
   border-radius: var(--radius-card);
   overflow: hidden;
 }
-.inner.flipped {
-  transform: rotate(180deg);
-}
 .wave-bg {
   position: absolute;
   inset: 0;
@@ -96,68 +107,66 @@ const iconSize = computed(() => Math.round(props.width * 0.22))
   height: 100%;
   shape-rendering: geometricPrecision;
 }
+.reading {
+  position: absolute;
+  inset: 0;
+  color: var(--ink);
+}
+.bottom-reading {
+  transform: rotate(180deg);
+}
 .p-name {
   position: absolute;
   left: 50%;
+  top: 4.5%;
   transform: translateX(-50%);
+  max-width: 72%;
+  overflow: hidden;
+  color: var(--ink);
   font-family: var(--font-ui);
   font-style: italic;
-  color: var(--cream);
-  letter-spacing: 0.03em;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
-  -webkit-font-smoothing: antialiased;
   line-height: 1;
-  max-width: 84%;
-  overflow: hidden;
+  letter-spacing: 0.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.p-name.top {
-  top: 4.5%;
-}
-.p-name.bottom {
-  bottom: 4.5%;
-  transform: translateX(-50%) rotate(180deg);
+  -webkit-font-smoothing: antialiased;
 }
 .big-num {
   position: absolute;
   left: 8%;
-  top: 13%;
+  top: 12%;
+  color: var(--ink);
   font-family: var(--font-num);
-  color: var(--cream);
-  /* 硬边偏移阴影，不发虚 */
-  text-shadow: 1.5px 1.5px 0 rgba(0, 0, 0, 0.32);
   line-height: 0.95;
   letter-spacing: -0.03em;
+  text-shadow: 1.5px 1.5px 0 var(--cream);
   -webkit-font-smoothing: antialiased;
 }
 .alt-tab {
   position: absolute;
   left: 8%;
-  top: 56%;
+  top: 45%;
   min-width: 24%;
   padding: 2.5% 5.5%;
   box-sizing: border-box;
-  background: var(--ink);
-  color: var(--cream);
   border-radius: 999px;
-  font-family: var(--font-num);
-  text-align: center;
-  line-height: 1.2;
-  -webkit-font-smoothing: antialiased;
+  background: var(--ink);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-num);
+  line-height: 1.2;
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
 }
 .act {
   position: absolute;
-  right: 8%;
-  top: 38%;
-  color: var(--cream);
-  opacity: 0.95;
-  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.35));
+  left: 10%;
+  top: 64%;
+  color: var(--ink);
+  opacity: 0.82;
 }
 .card-face.selected {
-  transform: translateY(-12%) scale(1.06);
   z-index: 5;
+  transform: translateY(-12%) scale(1.06);
   box-shadow: 0 0 0 3px var(--gold), 0 8px 16px rgba(0, 0, 0, 0.4);
 }
 .card-face.dim {

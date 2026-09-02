@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { beatsCombo, classify, comboLabel, legalShows } from '../rules'
+import { beatsCombo, classify, comboLabel, flippedHand, legalShows } from '../rules'
 import { buildFullDeck, deckForPlayerCount, DEAL_COUNT } from '../deck'
 import { RuleError } from '../types'
 
@@ -25,6 +25,27 @@ describe('牌组构成（官方规则）', () => {
   it('5 人局全用（45 张，每人 9）', () => {
     expect(deckForPlayerCount(5).length).toBe(45)
     expect(DEAL_COUNT[5]).toBe(9)
+  })
+})
+
+describe('整手旋转', () => {
+  it('同时交换每张牌的上下数字，并反转左右牌序', () => {
+    const hand = [
+      { top: 1, bottom: 8 },
+      { top: 3, bottom: 6 },
+      { top: 5, bottom: 9 },
+    ]
+
+    expect(flippedHand(hand)).toEqual([
+      { top: 9, bottom: 5 },
+      { top: 6, bottom: 3 },
+      { top: 8, bottom: 1 },
+    ])
+    expect(hand).toEqual([
+      { top: 1, bottom: 8 },
+      { top: 3, bottom: 6 },
+      { top: 5, bottom: 9 },
+    ])
   })
 })
 

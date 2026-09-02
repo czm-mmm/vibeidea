@@ -6,7 +6,7 @@
 // N：剩余手牌数
 
 import type { Card } from './types'
-import { classify } from './rules'
+import { classify, flippedHand } from './rules'
 
 export interface HandMetrics {
   B: number
@@ -105,7 +105,7 @@ export function structGain(before: HandMetrics, after: HandMetrics, playerCount 
 /** 整手翻转决策：B 更小 → 孤张更少 → L 更大 → P 更高（与 AI 翻面逻辑一致，供开局对话框复用） */
 export function betterFlip(hand: readonly Card[]): boolean {
   const a = evalHand(hand)
-  const b = evalHand(hand.map((c) => ({ top: c.bottom, bottom: c.top })))
+  const b = evalHand(flippedHand(hand))
   if (b.B !== a.B) return b.B < a.B
   if (b.I !== a.I) return b.I < a.I
   if (b.L !== a.L) return b.L > a.L

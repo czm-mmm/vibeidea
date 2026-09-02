@@ -22,7 +22,7 @@ const flipOn = computed(() => game.scoutFlow?.flip ?? false)
 const reveal = computed(() => {
   const n = Math.max(2, hand.value.length)
   const avail = wrapWidth.value - 16
-  const cap = isWide.value ? 78 : 30
+  const cap = isWide.value ? 88 : 34
   return Math.min(cap, Math.max(16, (avail - cardWidth.value) / (n - 1)))
 })
 
@@ -74,7 +74,7 @@ const scoutedCard = computed(() => {
 </script>
 
 <template>
-  <div class="hand-area">
+  <div ref="wrap" class="hand-area">
     <div class="info-row">
       <template v-if="insertMode && scoutedCard">
         <div class="scout-banner">
