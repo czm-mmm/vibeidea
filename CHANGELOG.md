@@ -6,6 +6,7 @@
 
 ### Added
 
+- 新增独立子项目 `projects/obsidian-study-companion`：Obsidian 个人学习插件源码、中文介绍、自拟示例和测试，支持聊天、分步练习与初版复习安排。
 - 接入用户选定的 A1 选牌点击声和 B1 出牌纸牌声（Kenney CC0），支持音效开关、首次交互解锁、后台静音和离线缓存。
 
 ### Security

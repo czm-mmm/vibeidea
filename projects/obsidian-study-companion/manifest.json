@@ -1,0 +1,9 @@
+{
+  "id": "study-companion",
+  "name": "学习 · Study Companion",
+  "version": "0.1.0",
+  "minAppVersion": "1.6.0",
+  "description": "围绕笔记提问、分步练习与基于作答记录的个人复习。支持本地 Codex 的 ChatGPT 登录。",
+  "author": "Personal study project",
+  "isDesktopOnly": true
+}

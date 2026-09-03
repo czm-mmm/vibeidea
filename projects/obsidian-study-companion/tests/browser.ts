@@ -1,0 +1,15 @@
+import { StudyView } from '../src/view';
+import { DEFAULT_DATA, type Question } from '../src/core';
+const proto=HTMLElement.prototype as any;
+proto.empty=function(){this.replaceChildren();};proto.addClass=function(name:string){this.classList.add(name);};proto.setText=function(text:string){this.textContent=text;};
+proto.createEl=function(tag:string,options:any={}){const el=document.createElement(tag);if(options.text)el.textContent=options.text;if(options.cls)el.className=options.cls;if(options.value!==undefined)(el as any).value=options.value;for(const [key,value] of Object.entries(options.attr||{}))el.setAttribute(key,String(value));this.appendChild(el);return el;};
+proto.createDiv=function(options:any={}){return this.createEl('div',options);};proto.createSpan=function(options:any={}){return this.createEl('span',options);};
+const context={id:'context1',path:'高等数学/乘积求导.md',title:'乘积求导',subject:'高等数学',selection:'(uv)′ = u′v + uv′',text:'两个函数的乘积求导。',hash:'hash'};
+const q:Question={id:'q1',path:'高等数学/题1.md',title:'乘积求导的独立尝试',subject:'高等数学',topic:'求导',source:'自拟示例',kind:'自拟题',prompt:'求函数 y = x²e²ˣ 的导数，写出你的思路。',hints:['先辨认两个相乘的因子，再考虑每个因子的导数。','指数 2x 的内层导数是 2。'],solution:'y′ = 2xe²ˣ + 2x²e²ˣ。',method:'使用乘积法则后，还需要注意链式法则。',reserved:false};
+const data=structuredClone(DEFAULT_DATA);data.activeSession=context.id;data.sessions[context.id]={context,questionDraft:'',understanding:'',messages:[{id:'m1',role:'user',text:'为什么有两项，不能直接把两个导数相乘？',status:'complete'},{id:'m2',role:'assistant',text:'两个因子都在变化。求导时，需要分别考虑每个因子的变化带来的影响，再把它们相加。\n\n取 u = x、v = x，乘积的导数是 2x，两个导数相乘却是 1。',status:'complete'}]};
+let view:StudyView;
+const app={workspace:{getActiveFile:()=>({path:context.path}),getLeaf:()=>({}),getActiveViewOfType:()=>null,on:()=>({}),offref:()=>{}},vault:{},metadataCache:{}};
+const plugin:any={app,data,events:[],questions:[q,{...q,id:'q2',title:'复合函数的方法辨别'}],busy:false,store:{appendUnderstanding:async()=>{}},session:()=>data.sessions[data.activeSession!],persist:async()=>{},views:()=>[view],redraw:()=>view.render(),record:async(e:any)=>{plugin.events.push(structuredClone(e));},reload:async()=>view.render(),getBridge:()=>({interrupt:async()=>{},answer:async(_prompt:string,onText?:any)=>{onText?.('模型回答');return '模型回答';}}),report:(e:any)=>{(window as any).lastNotice=e.message;},capture:async()=>{},detail:async()=>{}};
+view=new StudyView({app,contentEl:document.querySelector('.sc-root')} as any,plugin);
+void view.onOpen();
+(window as any).fixture={view,plugin};

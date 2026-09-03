@@ -1,0 +1,11 @@
+node_modules/
+dist/
+artifacts/
+.test-output/
+schemas/
+*.zip
+.obsidian/
+INSTALLATION.md
+.env
+.env.*
+*.log
