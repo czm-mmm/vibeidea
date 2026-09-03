@@ -40,7 +40,7 @@
 
 ## 快速开始
 
-需要 Node.js 20 或更高版本。
+需要 Node.js 24 LTS。
 
 ```bash
 git clone https://github.com/czm-mmm/vibeidea.git
@@ -49,7 +49,7 @@ npm install
 npm run dev
 ```
 
-开发服务器默认运行在 `http://localhost:5173`。
+开发服务器默认运行在 `http://127.0.0.1:5173`，仅允许本机访问。
 
 ## 常用命令
 
@@ -60,6 +60,8 @@ npm run dev
 | `npm test` | 运行规则引擎与 AI 测试 |
 | `npm run build` | 生成可部署的 PWA 到 `dist/` |
 | `npm run preview` | 本地预览生产构建 |
+| `npm run verify` | 类型、测试、构建与安全产物检查 |
+| `npm run audit:security` | 审计全部依赖，高危/严重告警返回失败 |
 
 ## 玩法速记
 
@@ -89,7 +91,9 @@ UI 通过 Pinia 镜像规则状态并统一调用 `dispatch`。规则内核不�
 
 ## 部署
 
-每次推送到 `main` 后，GitHub Actions 会先检查类型、测试和构建，再部署 GitHub Pages。
+每次推送到 `main` 后，GitHub Actions 会先检查依赖安全、类型、测试、构建和安全产物，再部署 GitHub Pages。
+
+Cloudflare 安全响应头随构建自动生成；严格资源 CSP 先以观察模式运行。GitHub Pages 不支持同样的自定义响应头，两站防护能力并不完全相同。维护和上线检查见 [安全说明](SECURITY.md)。
 
 | 环境 | 地址 |
 | --- | --- |

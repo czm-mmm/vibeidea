@@ -8,6 +8,8 @@
 
 ## 本地开发
 
+使用 Node.js 24 LTS。
+
 ```bash
 npm install
 npm run dev
@@ -16,9 +18,8 @@ npm run dev
 提交修改前，请确保以下命令全部通过：
 
 ```bash
-npm run typecheck
-npm test
-npm run build
+npm run audit:security
+npm run verify
 ```
 
 ## Pull Request

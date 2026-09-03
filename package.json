@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "check:security": "node scripts/check-security.mjs",
+    "audit:security": "npm audit --audit-level=high",
+    "verify": "npm run typecheck && npm test && npm run build && npm run check:security"
   },
   "dependencies": {
     "pinia": "^3.0.2",

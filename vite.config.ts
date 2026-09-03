@@ -3,12 +3,14 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
+import { securityHeaders, securityPlugin } from './config/security'
 
 export default defineConfig({
   // 相对路径：同时兼容本地根路径、花生壳根路径与 GitHub Pages 子路径（/vibeidea/）
   base: './',
   plugins: [
     vue(),
+    securityPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
@@ -33,13 +35,15 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
-  // 允许通过内网穿透域名访问（vicp.fun 为花生壳动态域名的后缀）
+  // 默认只在本机可用。需要穿透时仅显式允许自己控制的准确域名。
   server: {
-    allowedHosts: ['.vicp.fun'],
+    host: '127.0.0.1',
+    allowedHosts: [],
   },
   preview: {
-    host: '0.0.0.0',
-    allowedHosts: ['.vicp.fun'],
+    host: '127.0.0.1',
+    allowedHosts: [],
+    headers: securityHeaders,
   },
   test: {
     environment: 'node',
