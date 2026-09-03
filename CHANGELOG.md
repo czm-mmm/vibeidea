@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- 接入用户选定的 A1 选牌点击声和 B1 出牌纸牌声（Kenney CC0），支持音效开关、首次交互解锁、后台静音和离线缓存。
+
 ### Security
 
 - 收紧部署权限，将 Actions 固定到提交 SHA，使用 Node.js 24 LTS 并在发布前执行依赖与安全产物检查。

@@ -12,6 +12,7 @@ import type { GameAction, GameConfig, GameEvent, GameState, PlayerConfig, ScoutS
 import type { Combo, LegalShow } from '@/core/types'
 import { RuleError } from '@/core/types'
 import type { Difficulty } from '@/core/types'
+import { soundPlayer } from '@/audio'
 
 export type ViewName = 'home' | 'game' | 'rules' | 'settings'
 
@@ -235,6 +236,7 @@ export const useGameStore = defineStore('game', {
       this.pendingSpec = null
 
       for (const ev of result.events) {
+        if (ev.type === 'show' && this.view === 'game') void soundPlayer.play('play')
         if (ev.type === 'show' && ev.wentOut) this.showToast(`${this.state.players[ev.seat].name} 打光手牌！`, 'good')
         if (ev.type === 'roundEnd') {
           if (this.state!.roundNumber >= this.state!.totalRounds) this.showGameOver = true
@@ -283,13 +285,17 @@ export const useGameStore = defineStore('game', {
         return
       }
       if (!this.isHumanTurn) return
+      if (!this.human || !Number.isInteger(index) || index < 0 || index >= this.human.hand.length) return
       if (!this.selection) {
         this.selection = { from: index, to: index }
+        void soundPlayer.play('select')
         return
       }
       const from = Math.min(this.selection.from, index)
       const to = Math.max(this.selection.from, index)
+      const changed = this.selection.from !== from || this.selection.to !== to
       this.selection = { from, to }
+      if (changed) void soundPlayer.play('select')
     },
 
     clearSelection() {
@@ -341,13 +347,17 @@ export const useGameStore = defineStore('game', {
 
     tapDoubleShow(index: number) {
       if (!this.pendingSpec || !this.state) return
+      if (!Number.isInteger(index) || index < 0 || index >= (this.previewHand?.length ?? 0)) return
       if (!this.selection) {
         this.selection = { from: index, to: index }
+        void soundPlayer.play('select')
         return
       }
       const from = Math.min(this.selection.from, index)
       const to = Math.max(this.selection.from, index)
+      const changed = this.selection.from !== from || this.selection.to !== to
       this.selection = { from, to }
+      if (changed) void soundPlayer.play('select')
     },
 
     performDoubleShow() {

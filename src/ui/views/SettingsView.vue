@@ -3,9 +3,22 @@ import { useGameStore } from '@/stores/game'
 import { useSettingsStore, type AnimSpeed } from '@/stores/settings'
 import { AVATARS } from '@/ui/avatars'
 import AvatarIcon from '@/ui/components/AvatarIcon.vue'
+import { soundPlayer } from '@/audio'
 
 const game = useGameStore()
 const settings = useSettingsStore()
+
+let soundToggle = 0
+async function toggleSound() {
+  const attempt = ++soundToggle
+  settings.set('sound', !settings.sound)
+  if (settings.sound) {
+    const played = await soundPlayer.play('select', true)
+    if (!played && attempt === soundToggle && settings.sound && game.view === 'settings') {
+      game.showToast('音效暂时无法播放，请检查设备音量或再开关一次', 'warn')
+    }
+  }
+}
 
 const speeds: Array<{ v: AnimSpeed; label: string }> = [
   { v: 'normal', label: '正常' },
@@ -23,7 +36,7 @@ const speeds: Array<{ v: AnimSpeed; label: string }> = [
     <div class="body panel">
       <label class="row">
         <span>音效</span>
-        <button class="toggle" :class="{ on: settings.sound }" @click="settings.set('sound', !settings.sound)">
+        <button class="toggle" role="switch" aria-label="音效" :aria-checked="settings.sound" :class="{ on: settings.sound }" @click="toggleSound">
           {{ settings.sound ? '开' : '关' }}
         </button>
       </label>

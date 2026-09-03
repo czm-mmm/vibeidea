@@ -35,4 +35,12 @@ for (const entry of entries) {
 const worker = await readFile(new URL('sw.js', dist), 'utf8')
 assert.ok(worker.includes('index.html'), 'PWA must still precache the entry page')
 assert.ok(!worker.includes('_headers'), 'Cloudflare configuration must not enter the offline cache')
+const sounds = entries.filter(entry => /(?:^|[/\\])(?:select|play)-[^/\\]+\.wav$/.test(entry))
+assert.equal(sounds.length, 2, 'Both approved sound samples must ship as same-origin assets')
+for (const sound of sounds) {
+  assert.ok(worker.includes(sound.replaceAll('\\', '/')), `Sound is missing from the offline cache: ${sound}`)
+  const bytes = await readFile(new URL(sound.replaceAll('\\', '/'), dist))
+  assert.equal(bytes.toString('ascii', 0, 4), 'RIFF', 'Audio must remain browser-compatible WAV')
+  assert.equal(bytes.toString('ascii', 8, 12), 'WAVE')
+}
 console.log(`Security build checks passed: ${fileURLToPath(dist)} (${entries.length} entries).`)

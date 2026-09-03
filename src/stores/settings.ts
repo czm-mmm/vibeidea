@@ -28,7 +28,11 @@ export const useSettingsStore = defineStore('settings', {
   state: (): SettingsState => load(),
   actions: {
     persist() {
-      localStorage.setItem(KEY, JSON.stringify(this.$state))
+      try {
+        localStorage.setItem(KEY, JSON.stringify(this.$state))
+      } catch {
+        // Blocked/full storage should not stop controls working this session.
+      }
     },
     applyHtmlClass() {
       const html = document.documentElement
