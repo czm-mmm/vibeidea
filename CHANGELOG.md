@@ -6,7 +6,6 @@
 
 ### Added
 
-- 新增独立子项目 `projects/obsidian-study-companion`：Obsidian 个人学习插件源码、中文介绍、自拟示例和测试，支持聊天、分步练习与初版复习安排。
 - 接入用户选定的 A1 选牌点击声和 B1 出牌纸牌声（Kenney CC0），支持音效开关、首次交互解锁、后台静音和离线缓存。
 
 ### Security
@@ -17,6 +16,7 @@
 
 ### Changed
 
+- 学习 · Study Companion 已迁移至独立仓库：https://github.com/czm-mmm/obsidian-study-companion
 - 重做挖角后的插牌选择：牌面无重叠横向排列，插入按钮直接位于相邻牌之间，并显示两侧当前数字。
 - README 截图改为高清全宽展示。
 
