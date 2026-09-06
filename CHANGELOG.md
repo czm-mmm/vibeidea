@@ -16,7 +16,7 @@
 
 ### Changed
 
-- 学习 · Study Companion 已迁移至独立仓库：https://github.com/czm-mmm/obsidian-study-companion
+- 学习 · Study Companion 恢复到 `projects/obsidian-study-companion`，继续与本仓库一同维护；插件 0.1.1 增加 Codex 预热、线程复用、按需上下文、阶段状态及动态模型选择。
 - 重做挖角后的插牌选择：牌面无重叠横向排列，插入按钮直接位于相邻牌之间，并显示两侧当前数字。
 - README 截图改为高清全宽展示。
 
