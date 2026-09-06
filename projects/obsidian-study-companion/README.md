@@ -61,15 +61,7 @@ Obsidian 保存可以持续修改、链接和迁移的 Markdown 笔记；插件�
 
 ### 1. 安装实验版
 
-不需要开发环境时，可从 [GitHub Releases](https://github.com/czm-mmm/vibeidea/releases) 下载最新的 `study-companion-*.zip`，解压后把其中的 `study-companion` 文件夹放入：
-
-```text
-你的笔记库/.obsidian/plugins/
-```
-
-随后重启 Obsidian，在「设置 → 第三方插件」中启用 **学习 · Study Companion**。这是手动安装，不会让插件出现在 Obsidian 社区插件市场中。
-
-需要从源码构建时，建议使用 Node.js 24 LTS 与 npm：
+当前版本随 `vibeidea` 仓库源码提供，尚未单独提供安装包。建议使用 Node.js 24 LTS 与 npm 构建：
 
 ```bash
 git clone https://github.com/czm-mmm/vibeidea.git
@@ -86,6 +78,8 @@ npm run build
 ├── manifest.json
 └── styles.css
 ```
+
+随后重启 Obsidian，在「设置 → 第三方插件」中启用 **学习 · Study Companion**。这是手动安装，不会让插件出现在 Obsidian 社区插件市场中。
 
 也可以在 Windows PowerShell 中运行：
 
