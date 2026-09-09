@@ -77,7 +77,7 @@ export class CodexBridge {
     child.on('error',()=>{rpc.close(new Error('无法启动 Codex。请在连接设置中检查可执行文件路径。'));this.cancelCurrent?.();this.rpc=undefined;});
     child.on('exit',()=>{rpc.close();this.cancelCurrent?.();if(this.child===child){this.rpc=undefined;this.child=undefined;this.threads.clear();this.threadStarts.clear();this.models=undefined;this.account={connected:false};}});
     try{
-      await rpc.request('initialize',{clientInfo:{name:'obsidian_study_companion',title:'Study Companion',version:'0.1.2'}});
+      await rpc.request('initialize',{clientInfo:{name:'obsidian_study_companion',title:'Study Companion',version:'0.1.3'}});
       rpc.notify('initialized');
       const response=await rpc.request('config/read',{includeLayers:false});
       this.config={};

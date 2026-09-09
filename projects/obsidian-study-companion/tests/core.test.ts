@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { MODE_CONFIG, parseQuestion, parseEvent, serializeEvent, schedule, reviewQueue, validFolder, newContext, prepareContext, sourceContext, type StudyEvent, type Question, type Attempt } from '../src/core';
 const base=Date.parse('2026-09-01T08:00:00Z');
 const q:Question={id:'q1',path:'数学/q1.md',title:'测试题',subject:'数学',topic:'求导',kind:'自拟题',source:'测试',prompt:'求 x² 的导数',hints:['考虑差商'],solution:'2x',method:'',reserved:false};
-test('回答模式固定为快速 Luna max 与深入 Sol high',()=>{
+test('回答模式固定为快速、均衡与深入三档',()=>{
   assert.deepEqual(MODE_CONFIG.fast,{label:'快速',model:'gpt-5.6-luna',effort:'max'});
+  assert.deepEqual(MODE_CONFIG.balanced,{label:'均衡',model:'gpt-5.6-sol',effort:'medium'});
   assert.deepEqual(MODE_CONFIG.deep,{label:'深入',model:'gpt-5.6-sol',effort:'high'});
 });
 function attempt(key:string,time:number,help=0):StudyEvent {return {id:key,at:new Date(time).toISOString(),type:'attempt',subject:'数学',data:{id:key,questionId:'q1',subject:'数学',answer:'2x',hints:help,solutionSeen:false,startedAt:new Date(time-60000).toISOString(),submittedAt:new Date(time).toISOString()}};}

@@ -14,9 +14,10 @@ export interface ReviewItem { question:Question; due:number; reason:string; minu
 export interface PracticeDraft { questionId:string; answer:string; hints:number; solutionSeen:boolean; startedAt:string; attemptId?:string; pendingAttempt?:Attempt; feedback?:string; referenceVerdict?:Verdict }
 export interface ChatMessage { role:'user'|'assistant'; text:string; status?:'pending'|'complete'|'failed'; id:string }
 export interface Session { context:Context; messages:ChatMessage[]; questionDraft:string; understanding:string }
-export type TutorMode='fast'|'deep';
+export type TutorMode='fast'|'balanced'|'deep';
 export const MODE_CONFIG:Record<TutorMode,{label:string;model:string;effort:string}>={
   fast:{label:'快速',model:'gpt-5.6-luna',effort:'max'},
+  balanced:{label:'均衡',model:'gpt-5.6-sol',effort:'medium'},
   deep:{label:'深入',model:'gpt-5.6-sol',effort:'high'}
 };
 export interface Settings { codexPath:string; mode:TutorMode; recordsFolder:string; minutes:number }

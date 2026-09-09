@@ -63,7 +63,7 @@ export class StudyView extends ItemView {
     for(const [tab,title] of [['chat','聊天'],['practice','练习'],['review','复习']] as const){const b=button(nav,title,async()=>{this.plugin.data.tab=tab;this.message='';await this.plugin.persist();this.render();});b.setAttribute('aria-pressed',String(this.plugin.data.tab===tab));}
     const tools=toolbar.createDiv({cls:'sc-tools'});
     const currentMode=MODE_CONFIG[this.plugin.data.settings.mode]||MODE_CONFIG.fast;
-    const mode=button(tools,currentMode.label,()=>this.plugin.setMode(this.plugin.data.settings.mode==='fast'?'deep':'fast'));
+    const mode=button(tools,currentMode.label,()=>this.plugin.setMode(this.plugin.data.settings.mode==='fast'?'balanced':this.plugin.data.settings.mode==='balanced'?'deep':'fast'));
     mode.classList.add('sc-mode');mode.title=`${currentMode.label}：${currentMode.model} · ${currentMode.effort}；点击切换模式`;mode.setAttribute('aria-label',mode.title);
     const expand=button(tools,'展开',()=>this.openInMain());expand.classList.add('sc-expand');expand.title='在主笔记区打开学习';
     const more=button(tools,'···',event=>this.showMenu(event));more.setAttribute('aria-label','更多操作');more.title='连接、切换笔记与外部问答';more.setAttribute('aria-haspopup','menu');
@@ -260,11 +260,11 @@ export class ConnectionModal extends Modal {
     label(this.contentEl,'使用本机 Codex 的 ChatGPT 登录与订阅额度。不需要 API Key。');
     const executable=field(this.contentEl,'Codex 可执行文件',this.plugin.data.settings.codexPath,()=>{},1);
     const modeField=this.contentEl.createEl('label',{cls:'sc-field'});modeField.createSpan({text:'回答模式'});const mode=modeField.createEl('select');
-    mode.createEl('option',{text:'快速 · Luna max',value:'fast'});mode.createEl('option',{text:'深入 · Sol high',value:'deep'});mode.value=this.plugin.data.settings.mode;
-    label(this.contentEl,'快速适合日常问答；深入适合复杂推导和综合分析。切换模式会建立新的 Codex 连接。');
+    mode.createEl('option',{text:'快速 · Luna max',value:'fast'});mode.createEl('option',{text:'均衡 · Sol medium',value:'balanced'});mode.createEl('option',{text:'深入 · Sol high',value:'deep'});mode.value=this.plugin.data.settings.mode;
+    label(this.contentEl,'快速适合日常问答，均衡适合一般课程学习，深入适合复杂推导和综合分析。切换模式会建立新的 Codex 连接。');
     const status=label(this.contentEl,'正在读取 Codex 设置…');status.setAttribute('role','status');
-    const save=async()=>{this.plugin.data.settings.codexPath=executable.value.trim()||'codex';this.plugin.data.settings.mode=mode.value==='deep'?'deep':'fast';await this.plugin.persist();await this.plugin.resetBridge();};
-    const inspect=async()=>{status.setText('正在检查连接与回答模式…');try{if((executable.value.trim()||'codex')!==this.plugin.data.settings.codexPath){this.plugin.data.settings.codexPath=executable.value.trim()||'codex';await this.plugin.persist();await this.plugin.resetBridge();}const bridge=this.plugin.getBridge();const account=await bridge.connect(true);const models=await bridge.listModels(true);const supported=Object.values(MODE_CONFIG).every(required=>models.some(item=>item.model===required.model&&item.supportedReasoningEfforts.some(option=>option.reasoningEffort===required.effort)));status.setText((account.connected?'已连接 ChatGPT'+(account.plan?' · '+account.plan:''):'尚未使用 ChatGPT 登录')+(supported?' · 快速与深入模式均可用':' · 当前 Codex 缺少所需模型或推理强度'));}catch(error){status.setText(error instanceof Error?error.message:String(error));}};
+    const save=async()=>{this.plugin.data.settings.codexPath=executable.value.trim()||'codex';this.plugin.data.settings.mode=mode.value==='deep'?'deep':mode.value==='balanced'?'balanced':'fast';await this.plugin.persist();await this.plugin.resetBridge();};
+    const inspect=async()=>{status.setText('正在检查连接与回答模式…');try{if((executable.value.trim()||'codex')!==this.plugin.data.settings.codexPath){this.plugin.data.settings.codexPath=executable.value.trim()||'codex';await this.plugin.persist();await this.plugin.resetBridge();}const bridge=this.plugin.getBridge();const account=await bridge.connect(true);const models=await bridge.listModels(true);const supported=Object.values(MODE_CONFIG).every(required=>models.some(item=>item.model===required.model&&item.supportedReasoningEfforts.some(option=>option.reasoningEffort===required.effort)));status.setText((account.connected?'已连接 ChatGPT'+(account.plan?' · '+account.plan:''):'尚未使用 ChatGPT 登录')+(supported?' · 三种回答模式均可用':' · 当前 Codex 缺少所需模型或推理强度'));}catch(error){status.setText(error instanceof Error?error.message:String(error));}};
     const actions=this.contentEl.createDiv({cls:'sc-actions'});
     button(actions,'检查连接与模式',inspect,true);
     button(actions,'保存设置',async()=>{await save();this.plugin.redraw();status.setText('设置已保存，正在后台预热当前笔记…');void this.plugin.prewarm();});
