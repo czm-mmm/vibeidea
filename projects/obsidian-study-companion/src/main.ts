@@ -2,7 +2,7 @@ import { Plugin, MarkdownView, Notice, TFile, WorkspaceLeaf, Modal, normalizePat
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { CodexBridge } from './codex';
-import { DEFAULT_DATA, id, newContext, parseQuestion, validFolder, type Context, type PluginData, type Question, type Session, type StudyEvent } from './core';
+import { DEFAULT_DATA, MODE_CONFIG, id, newContext, parseQuestion, validFolder, type Context, type PluginData, type Question, type Session, type StudyEvent, type TutorMode } from './core';
 import { VaultStore } from './storage';
 import { StudyView, DetailView, VIEW_TYPE, DETAIL_TYPE, ConnectionModal, QuestionModal } from './view';
 
@@ -66,6 +66,7 @@ export default class StudyPlugin extends Plugin {
     if(!leaf)throw new Error('无法打开右侧栏。');
     if(!existing)await leaf.setViewState({type:VIEW_TYPE,active:true});
     await this.app.workspace.revealLeaf(leaf);
+    void this.prewarm();
   }
   async capture(){
     const view=this.app.workspace.getActiveViewOfType(MarkdownView)||this.lastNote;
@@ -79,13 +80,14 @@ export default class StudyPlugin extends Plugin {
     const context=newContext(file.path,file.basename,subject,selection,text);
     const old=this.data.sessions[context.id];
     this.data.sessions[context.id]=old?{...old,context}:{context,messages:[],questionDraft:'',understanding:''};
-    this.data.activeSession=context.id;await this.persist();this.redraw();
+    this.data.activeSession=context.id;await this.persist();this.redraw();void this.prewarm(context.id);
   }
   async record(event:StudyEvent){await this.store.append(event);if(!this.events.some(e=>e.id===event.id))this.events.push(event);}
   async detail(title:string,text:string,sourcePath:string){
     const leaf=this.app.workspace.getLeaf('tab');await leaf.setViewState({type:DETAIL_TYPE,active:true,state:{title,text,sourcePath}});await this.app.workspace.revealLeaf(leaf);
   }
-  async prewarm(){try{await this.getBridge().prewarm();}catch{/* Connection errors remain available in the explicit connection dialog. */}}
+  async prewarm(conversationId=this.data.activeSession){try{await this.getBridge().prewarm(conversationId);}catch{/* Connection errors remain available in the explicit connection dialog. */}}
+  async setMode(mode:TutorMode){if(this.data.settings.mode===mode)return;this.data.settings.mode=mode;await this.persist();await this.resetBridge();this.redraw();void this.prewarm();}
   getBridge(){
     if(!this.bridge){
       let binary=this.data.settings.codexPath;
@@ -93,7 +95,8 @@ export default class StudyPlugin extends Plugin {
         const bin=join(process.env.LOCALAPPDATA,'OpenAI','Codex','bin');
         if(existsSync(bin)){const candidates=readdirSync(bin,{withFileTypes:true}).filter(x=>x.isDirectory()).map(x=>join(bin,x.name,'codex.exe')).filter(existsSync);if(candidates.length===1)binary=candidates[0];}
       }
-      this.bridge=new CodexBridge(binary,this.data.settings.model,this.data.settings.effort);
+      const mode=MODE_CONFIG[this.data.settings.mode]||MODE_CONFIG.fast;
+      this.bridge=new CodexBridge(binary,mode.model,mode.effort);
     }return this.bridge;
   }
   async resetBridge(){await this.bridge?.dispose();this.bridge=undefined;}

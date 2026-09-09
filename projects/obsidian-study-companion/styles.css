@@ -8,6 +8,7 @@
 .sc-root .sc-toolbar {display:flex;align-items:center;gap:8px;}
 .sc-root .sc-tools {display:flex;align-items:center;gap:2px;flex:none;}
 .sc-root .sc-tools button {min-width:28px;padding:4px 6px;}
+.sc-root .sc-mode {min-width:42px;color:var(--text-accent);font-weight:var(--font-medium);}
 .sc-root strong {font-weight:var(--font-semibold);}
 .sc-root .sc-context-reference {margin-top:2px;}
 .sc-root .sc-context-reference summary {display:flex;align-items:center;gap:6px;padding:3px 2px;font-size:var(--font-ui-small);}

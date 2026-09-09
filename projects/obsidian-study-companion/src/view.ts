@@ -1,7 +1,6 @@
 import { Component, ItemView, MarkdownRenderer, MarkdownView, Menu, Modal, Notice, TFile, type EventRef, type WorkspaceLeaf } from 'obsidian';
 import type StudyPlugin from './main';
-import { id, prepareContext, reviewQueue, schedule, sourceContext, TUTOR_RULES, type Question, type Session, type Tab, type Verdict } from './core';
-import type { CodexModel } from './codex';
+import { id, MODE_CONFIG, prepareContext, reviewQueue, schedule, sourceContext, TUTOR_RULES, type Question, type Session, type Tab } from './core';
 import { watchChatScroll, watchStatusBar } from './layout';
 
 export const VIEW_TYPE='study-companion-view';
@@ -63,6 +62,9 @@ export class StudyView extends ItemView {
     const nav=toolbar.createEl('nav',{cls:'sc-tabs',attr:{'aria-label':'学习入口'}});
     for(const [tab,title] of [['chat','聊天'],['practice','练习'],['review','复习']] as const){const b=button(nav,title,async()=>{this.plugin.data.tab=tab;this.message='';await this.plugin.persist();this.render();});b.setAttribute('aria-pressed',String(this.plugin.data.tab===tab));}
     const tools=toolbar.createDiv({cls:'sc-tools'});
+    const currentMode=MODE_CONFIG[this.plugin.data.settings.mode]||MODE_CONFIG.fast;
+    const mode=button(tools,currentMode.label,()=>this.plugin.setMode(this.plugin.data.settings.mode==='fast'?'deep':'fast'));
+    mode.classList.add('sc-mode');mode.title=`${currentMode.label}：${currentMode.model} · ${currentMode.effort}；点击切换模式`;mode.setAttribute('aria-label',mode.title);
     const expand=button(tools,'展开',()=>this.openInMain());expand.classList.add('sc-expand');expand.title='在主笔记区打开学习';
     const more=button(tools,'···',event=>this.showMenu(event));more.setAttribute('aria-label','更多操作');more.title='连接、切换笔记与外部问答';more.setAttribute('aria-haspopup','menu');
     if(session){
@@ -257,18 +259,15 @@ export class ConnectionModal extends Modal {
     this.contentEl.createEl('h2',{text:'连接 ChatGPT / Codex'});
     label(this.contentEl,'使用本机 Codex 的 ChatGPT 登录与订阅额度。不需要 API Key。');
     const executable=field(this.contentEl,'Codex 可执行文件',this.plugin.data.settings.codexPath,()=>{},1);
-    const modelField=this.contentEl.createEl('label',{cls:'sc-field'});modelField.createSpan({text:'模型'});const model=modelField.createEl('select');
-    const effortField=this.contentEl.createEl('label',{cls:'sc-field'});effortField.createSpan({text:'推理强度'});const effort=effortField.createEl('select');
-    let models:CodexModel[]=[];
-    const fillEfforts=()=>{const selected=models.find(item=>item.model===model.value)||models.find(item=>item.isDefault);effort.empty();effort.createEl('option',{text:'跟随模型默认',value:''});for(const item of selected?.supportedReasoningEfforts||[]){const option=effort.createEl('option',{text:item.reasoningEffort,value:item.reasoningEffort});if(item.description)option.title=item.description;}effort.value=Array.from(effort.options).some(x=>x.value===this.plugin.data.settings.effort)?this.plugin.data.settings.effort:'';};
-    const fillModels=(rows:CodexModel[])=>{models=rows;model.empty();model.createEl('option',{text:'跟随 Codex 默认',value:''});for(const item of rows){const option=model.createEl('option',{text:item.displayName+(item.isDefault?'（默认）':''),value:item.model});option.title=item.description;}if(this.plugin.data.settings.model&&!Array.from(model.options).some(x=>x.value===this.plugin.data.settings.model))model.createEl('option',{text:this.plugin.data.settings.model+'（当前设置）',value:this.plugin.data.settings.model});model.value=this.plugin.data.settings.model;fillEfforts();};
-    fillModels([]);model.addEventListener('change',fillEfforts);
+    const modeField=this.contentEl.createEl('label',{cls:'sc-field'});modeField.createSpan({text:'回答模式'});const mode=modeField.createEl('select');
+    mode.createEl('option',{text:'快速 · Luna max',value:'fast'});mode.createEl('option',{text:'深入 · Sol high',value:'deep'});mode.value=this.plugin.data.settings.mode;
+    label(this.contentEl,'快速适合日常问答；深入适合复杂推导和综合分析。切换模式会建立新的 Codex 连接。');
     const status=label(this.contentEl,'正在读取 Codex 设置…');status.setAttribute('role','status');
-    const save=async()=>{this.plugin.data.settings.codexPath=executable.value.trim()||'codex';this.plugin.data.settings.model=model.value;this.plugin.data.settings.effort=effort.value;await this.plugin.persist();await this.plugin.resetBridge();};
-    const inspect=async()=>{status.setText('正在检查连接并读取模型…');try{if((executable.value.trim()||'codex')!==this.plugin.data.settings.codexPath){this.plugin.data.settings.codexPath=executable.value.trim()||'codex';await this.plugin.persist();await this.plugin.resetBridge();}const bridge=this.plugin.getBridge();const account=await bridge.connect(true);models=await bridge.listModels(true);fillModels(models);status.setText((account.connected?'已连接 ChatGPT'+(account.plan?' · '+account.plan:''):'尚未使用 ChatGPT 登录')+(models.length?` · ${models.length} 个可用模型`:' · 未读取到模型列表'));}catch(error){status.setText(error instanceof Error?error.message:String(error));}};
+    const save=async()=>{this.plugin.data.settings.codexPath=executable.value.trim()||'codex';this.plugin.data.settings.mode=mode.value==='deep'?'deep':'fast';await this.plugin.persist();await this.plugin.resetBridge();};
+    const inspect=async()=>{status.setText('正在检查连接与回答模式…');try{if((executable.value.trim()||'codex')!==this.plugin.data.settings.codexPath){this.plugin.data.settings.codexPath=executable.value.trim()||'codex';await this.plugin.persist();await this.plugin.resetBridge();}const bridge=this.plugin.getBridge();const account=await bridge.connect(true);const models=await bridge.listModels(true);const supported=Object.values(MODE_CONFIG).every(required=>models.some(item=>item.model===required.model&&item.supportedReasoningEfforts.some(option=>option.reasoningEffort===required.effort)));status.setText((account.connected?'已连接 ChatGPT'+(account.plan?' · '+account.plan:''):'尚未使用 ChatGPT 登录')+(supported?' · 快速与深入模式均可用':' · 当前 Codex 缺少所需模型或推理强度'));}catch(error){status.setText(error instanceof Error?error.message:String(error));}};
     const actions=this.contentEl.createDiv({cls:'sc-actions'});
-    button(actions,'刷新连接与模型',inspect,true);
-    button(actions,'保存设置',async()=>{await save();status.setText('设置已保存，正在后台预热…');void this.plugin.prewarm();});
+    button(actions,'检查连接与模式',inspect,true);
+    button(actions,'保存设置',async()=>{await save();this.plugin.redraw();status.setText('设置已保存，正在后台预热当前笔记…');void this.plugin.prewarm();});
     button(this.contentEl,'使用 ChatGPT 登录',async()=>{await save();const url=await this.plugin.getBridge().login();const parsed=new URL(url);if(parsed.protocol!=='https:'||!['auth.openai.com','chatgpt.com'].includes(parsed.hostname))throw new Error('登录地址异常，未打开。');window.open(url);status.setText('请在浏览器完成登录，然后刷新连接。');});
     label(this.contentEl,'仅在提问或分析时发送所选资料。额度不足时保留输入；也可复制问题到 ChatGPT，再粘贴回答。');
     void inspect();

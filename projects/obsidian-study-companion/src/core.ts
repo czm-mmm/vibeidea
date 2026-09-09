@@ -14,9 +14,14 @@ export interface ReviewItem { question:Question; due:number; reason:string; minu
 export interface PracticeDraft { questionId:string; answer:string; hints:number; solutionSeen:boolean; startedAt:string; attemptId?:string; pendingAttempt?:Attempt; feedback?:string; referenceVerdict?:Verdict }
 export interface ChatMessage { role:'user'|'assistant'; text:string; status?:'pending'|'complete'|'failed'; id:string }
 export interface Session { context:Context; messages:ChatMessage[]; questionDraft:string; understanding:string }
-export interface Settings { codexPath:string; model:string; effort:string; recordsFolder:string; minutes:number }
+export type TutorMode='fast'|'deep';
+export const MODE_CONFIG:Record<TutorMode,{label:string;model:string;effort:string}>={
+  fast:{label:'快速',model:'gpt-5.6-luna',effort:'max'},
+  deep:{label:'深入',model:'gpt-5.6-sol',effort:'high'}
+};
+export interface Settings { codexPath:string; mode:TutorMode; recordsFolder:string; minutes:number }
 export interface PluginData { version:1; settings:Settings; sessions:Record<string,Session>; activeSession?:string; practice?:PracticeDraft; tab:Tab }
-export const DEFAULT_DATA:PluginData = { version:1,settings:{codexPath:'codex',model:'',effort:'',recordsFolder:'学习记录/Study Companion',minutes:20},sessions:{},tab:'chat' };
+export const DEFAULT_DATA:PluginData = { version:1,settings:{codexPath:'codex',mode:'fast',recordsFolder:'学习记录/Study Companion',minutes:20},sessions:{},tab:'chat' };
 export const hash = (text:string) => createHash('sha256').update(text).digest('hex');
 export const id = () => randomUUID();
 export function newContext(path:string,title:string,subject:string,selection:string,text:string):Context {

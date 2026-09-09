@@ -42,3 +42,10 @@ test('同一学习会话连续提问只建立一次 Codex 线程',async()=>{
   assert.equal(await bridge.answer('追问',()=>{},{conversationId:'课程一'}),'回答2');
   assert.equal(threadStarts,1);assert.equal(turns,2);
 });
+test('后台预热提前创建当前笔记线程且不会重复创建',async()=>{
+  const bridge:any=new CodexBridge('unused','gpt-5.6-luna','max');bridge.directory='C:/temp';bridge.config={};bridge.connect=async()=>({connected:true});
+  bridge.listModels=async()=>[{model:'gpt-5.6-luna',displayName:'GPT-5.6 Luna',description:'',isDefault:false,supportedReasoningEfforts:[{reasoningEffort:'max',description:''}]}];
+  let threadStarts=0;bridge.rpc={listeners:new Set(),request:async(method:string)=>{if(method==='thread/start'){threadStarts++;await new Promise(resolve=>setTimeout(resolve,5));return {thread:{id:'warm-thread'},sandbox:{type:'readOnly'}};}return {};}};
+  await Promise.all([bridge.prewarm('课程一'),bridge.prewarm('课程一')]);
+  assert.equal(bridge.hasConversation('课程一'),true);assert.equal(threadStarts,1);
+});

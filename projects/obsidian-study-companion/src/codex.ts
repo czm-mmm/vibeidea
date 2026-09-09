@@ -47,6 +47,7 @@ export class CodexBridge {
   private starting?:Promise<void>;
   private config:Record<string,unknown>={};
   private threads=new Map<string,string>();
+  private threadStarts=new Map<string,Promise<string>>();
   private models?:CodexModel[];
   private active?:{threadId:string;turnId?:string;cancelled:boolean};
   private cancelCurrent?:()=>void;
@@ -74,9 +75,9 @@ export class CodexBridge {
     // Drain stderr, but do not persist or expose account and configuration diagnostics.
     child.stderr.on('data',()=>{});
     child.on('error',()=>{rpc.close(new Error('无法启动 Codex。请在连接设置中检查可执行文件路径。'));this.cancelCurrent?.();this.rpc=undefined;});
-    child.on('exit',()=>{rpc.close();this.cancelCurrent?.();if(this.child===child){this.rpc=undefined;this.child=undefined;this.threads.clear();this.models=undefined;this.account={connected:false};}});
+    child.on('exit',()=>{rpc.close();this.cancelCurrent?.();if(this.child===child){this.rpc=undefined;this.child=undefined;this.threads.clear();this.threadStarts.clear();this.models=undefined;this.account={connected:false};}});
     try{
-      await rpc.request('initialize',{clientInfo:{name:'obsidian_study_companion',title:'Study Companion',version:'0.1.1'}});
+      await rpc.request('initialize',{clientInfo:{name:'obsidian_study_companion',title:'Study Companion',version:'0.1.2'}});
       rpc.notify('initialized');
       const response=await rpc.request('config/read',{includeLayers:false});
       this.config={};
@@ -106,7 +107,16 @@ export class CodexBridge {
     this.models=models;return models;
   }
   hasConversation(id:string){return this.threads.has(id);}
-  async prewarm(){await this.connect();await this.listModels().catch(()=>[]);}
+  private async ensureConversation(conversationId:string,onStage?:(text:string)=>void){
+    const existing=this.threads.get(conversationId);if(existing)return existing;
+    const pending=this.threadStarts.get(conversationId);if(pending)return pending;
+    const creating=(async()=>{onStage?.('正在建立对话…');await this.connect();const rpc=this.rpc!;
+      const result=await rpc.request('thread/start',{cwd:this.directory,ephemeral:true,modelProvider:'openai',approvalPolicy:'never',sandbox:'read-only',...(this.model?{model:this.model}:{}),config:this.config,baseInstructions:TUTOR_RULES,developerInstructions:'仅回答输入中的学习问题。禁止工具调用、命令执行和读写任何文件。'});
+      if(result.sandbox?.type!=='readOnly')throw new Error('当前 Codex 未采用只读模式，请检查配置后重试。');
+      const threadId=result.thread.id as string;this.threads.set(conversationId,threadId);return threadId;
+    })().finally(()=>this.threadStarts.delete(conversationId));this.threadStarts.set(conversationId,creating);return creating;
+  }
+  async prewarm(conversationId?:string){const account=await this.connect();const models=await this.listModels().catch(()=>[]);if(this.model&&models.length&&!models.some(item=>item.model===this.model))throw new Error('当前 Codex 不支持所选回答模式。');if(conversationId&&account.connected)await this.ensureConversation(conversationId);}
   async login():Promise<string>{await this.connect();const value=await this.rpc!.request('account/login/start',{type:'chatgpt'});return value.authUrl;}
   async answer(prompt:string,onText:(text:string)=>void=()=>{},options:AnswerOptions={}):Promise<string>{
     if(this.responding)throw new Error('请等待当前回答结束，或先停止它。');
@@ -118,14 +128,8 @@ export class CodexBridge {
     if(this.cancelRequested)throw new Error('已停止回答，输入已保留。');
     if(!account.connected)throw new Error('请先使用 ChatGPT 账号连接 Codex；本插件不会切换到付费 API。');
     const rpc=this.rpc!;
-    const conversationId=options.conversationId||'default';let threadId=this.threads.get(conversationId);
-    if(!threadId){
-      options.onStage?.('正在建立对话…');
-      const result=await rpc.request('thread/start',{cwd:this.directory,ephemeral:true,modelProvider:'openai',approvalPolicy:'never',sandbox:'read-only',...(this.model?{model:this.model}:{}),config:this.config,baseInstructions:TUTOR_RULES,developerInstructions:'仅回答输入中的学习问题。禁止工具调用、命令执行和读写任何文件。'});
-      if(this.cancelRequested)throw new Error('已停止回答，输入已保留。');
-      if(result.sandbox?.type!=='readOnly')throw new Error('当前 Codex 未采用只读模式，请检查配置后重试。');
-      threadId=result.thread.id as string;this.threads.set(conversationId,threadId);
-    }else options.onStage?.('正在继续对话…');
+    const conversationId=options.conversationId||'default';const warmed=this.threads.has(conversationId);const threadId=await this.ensureConversation(conversationId,options.onStage);
+    if(this.cancelRequested)throw new Error('已停止回答，输入已保留。');if(warmed)options.onStage?.('正在继续对话…');
     const active={threadId,turnId:undefined as string|undefined,cancelled:false};this.active=active;
     const chunks=new Map<string,string>();
     return new Promise<string>((resolve,reject)=>{
@@ -151,5 +155,5 @@ export class CodexBridge {
     });
   }
   async interrupt(){this.cancelRequested=true;const active=this.active;if(!active)return;active.cancelled=true;if(active.turnId&&this.rpc)await this.rpc.request('turn/interrupt',{threadId:active.threadId,turnId:active.turnId}).catch(()=>{});}
-  async dispose(){this.cancelCurrent?.();this.rpc?.close();this.rpc=undefined;this.child?.stdin.end();this.child?.kill();this.child=undefined;this.threads.clear();this.models=undefined;this.account={connected:false};if(this.directory){const directory=resolve(this.directory);this.directory=undefined;if(dirname(directory)===resolve(tmpdir())&&basename(directory).startsWith('obsidian-study-'))await rm(directory,{recursive:true,force:true}).catch(()=>{});}}
+  async dispose(){this.cancelCurrent?.();this.rpc?.close();this.rpc=undefined;this.child?.stdin.end();this.child?.kill();this.child=undefined;this.threads.clear();this.threadStarts.clear();this.models=undefined;this.account={connected:false};if(this.directory){const directory=resolve(this.directory);this.directory=undefined;if(dirname(directory)===resolve(tmpdir())&&basename(directory).startsWith('obsidian-study-'))await rm(directory,{recursive:true,force:true}).catch(()=>{});}}
 }
