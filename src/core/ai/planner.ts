@@ -14,7 +14,7 @@ import { classify, legalShows } from '../rules'
 import { evalHand, structGain } from '../metrics'
 import { applyAction } from '../engine'
 
-interface Scored {
+export interface ScoredAction {
   action: GameAction
   score: number
 }
@@ -180,12 +180,12 @@ export function topScoutSpecs(state: GameState, seat: number, k: number): ScoutS
   return scored.slice(0, k).map((s) => s.spec)
 }
 
-/** 二档决策器（三档也用它为对手选择回应） */
-export function chooseGreedy(state: GameState, seat: number): GameAction {
+/** 旧中等启发式的完整合法行动排名；简单难度据此选择次优行动。 */
+export function rankedHeuristicActions(state: GameState, seat: number): ScoredAction[] {
   const player = state.players[seat]
   const shows = legalShows(player.hand, state.active ? state.active.combo : null)
 
-  const scored: Scored[] = []
+  const scored: ScoredAction[] = []
   for (const s of shows) {
     scored.push({ action: { type: 'show', from: s.from, to: s.to }, score: scoreShow(state, seat, s) })
   }
@@ -196,12 +196,17 @@ export function chooseGreedy(state: GameState, seat: number): GameAction {
     scored.push({ action: da, score: scoreDoubleAction(state, seat, da) })
   }
   if (scored.length === 0) {
-    // 理论不可达兜底
-    if (shows.length > 0) return { type: 'show', from: shows[0].from, to: shows[0].to }
-    return { type: 'scout', spec: { end: 'left', insertAt: 0, flip: false } }
+    // 理论不可达兜底仍返回一个可排序的候选。
+    if (shows.length > 0) return [{ action: { type: 'show', from: shows[0].from, to: shows[0].to }, score: 0 }]
+    return [{ action: { type: 'scout', spec: { end: 'left', insertAt: 0, flip: false } }, score: 0 }]
   }
   scored.sort((a, b) => b.score - a.score)
-  return scored[0].action
+  return scored
+}
+
+/** 旧中等决策器：始终选择启发式评分第一名。 */
+export function chooseGreedy(state: GameState, seat: number): GameAction {
+  return rankedHeuristicActions(state, seat)[0].action
 }
 
 export const heuristicStrategy: AiStrategy = {

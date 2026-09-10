@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction, createGame, startNextRound } from '../engine'
 import { mulberry32 } from '../rng'
-import { greedyStrategy, heuristicStrategy, plannerStrategy } from '../ai'
+import { heuristicStrategy, strategyForDifficulty } from '../ai'
 import type { GameConfig, GameState, PlayerConfig } from '../types'
 import { RuleError } from '../types'
 
@@ -15,10 +15,7 @@ function aiOnlyConfig(n: number, seedExtra = 0): GameConfig {
 }
 
 function strategyFor(state: GameState, seat: number) {
-  const d = state.players[seat].difficulty
-  if (d === 'easy') return greedyStrategy
-  if (d === 'normal') return heuristicStrategy
-  return plannerStrategy
+  return strategyForDifficulty(state.players[seat].difficulty)
 }
 
 /** 跑完一整轮（AI only），返回结束状态 */

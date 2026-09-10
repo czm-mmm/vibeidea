@@ -6,8 +6,7 @@ import {
 } from '@/core/engine'
 import { classify, legalShows } from '@/core/rules'
 import { mulberry32 } from '@/core/rng'
-import { greedyStrategy, heuristicStrategy, plannerStrategy } from '@/core/ai'
-import type { AiStrategy } from '@/core/ai'
+import { strategyForDifficulty } from '@/core/ai'
 import type { GameAction, GameConfig, GameEvent, GameState, PlayerConfig, ScoutSpec } from '@/core/types'
 import type { Combo, LegalShow } from '@/core/types'
 import { RuleError } from '@/core/types'
@@ -52,12 +51,6 @@ interface GameStoreState {
   /** 结算面板显示时机 */
   showRoundResult: boolean
   showGameOver: boolean
-}
-
-function strategyFor(difficulty: Difficulty): AiStrategy {
-  if (difficulty === 'easy') return greedyStrategy
-  if (difficulty === 'normal') return heuristicStrategy
-  return plannerStrategy
 }
 
 const AI_NAMES = ['Ada', 'Bram', 'Cy', 'Dex', 'Echo']
@@ -264,7 +257,7 @@ export const useGameStore = defineStore('game', {
       aiTimer = setTimeout(() => {
         const cur = this.state
         if (!cur || cur.phase !== 'playing' || cur.current !== seat) return
-        const strategy = strategyFor(cur.players[seat].difficulty)
+        const strategy = strategyForDifficulty(cur.players[seat].difficulty)
         const rng = mulberry32((Math.random() * 0xffffffff) >>> 0)
         const action = strategy.chooseAction(cur, seat, rng)
         this.dispatch(seat, action)
