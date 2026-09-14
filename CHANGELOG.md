@@ -16,6 +16,7 @@
 
 ### Changed
 
+- 学习 · Study Companion 更新至 0.1.4：课程推荐按知识点匹配人工核对的目录，并细化到具体课程、章/节、小节标题和直接链接。
 - 学习 · Study Companion 更新至 0.1.3：新增均衡（Sol `medium`）模式，右栏可在快速、均衡和深入之间循环切换。
 - 学习 · Study Companion 更新至 0.1.2：只保留快速（Luna `max`）与深入（Sol `high`）两种回答模式，并在后台提前创建当前笔记线程以缩短首次提问等待。
 - 学习 · Study Companion 恢复到 `projects/obsidian-study-companion`，继续与本仓库一同维护；插件 0.1.1 增加 Codex 预热、线程复用、按需上下文、阶段状态及动态模型选择。

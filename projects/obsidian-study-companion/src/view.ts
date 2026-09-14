@@ -1,6 +1,6 @@
 import { Component, ItemView, MarkdownRenderer, MarkdownView, Menu, Modal, Notice, TFile, type EventRef, type WorkspaceLeaf } from 'obsidian';
 import type StudyPlugin from './main';
-import { id, MODE_CONFIG, prepareContext, reviewQueue, schedule, sourceContext, TUTOR_RULES, type Question, type Session, type Tab } from './core';
+import { id, MODE_CONFIG, prepareContext, reviewQueue, schedule, sourceContext, TUTOR_RULES, wantsCourseRecommendation, type Question, type Session, type Tab } from './core';
 import { watchChatScroll, watchStatusBar } from './layout';
 
 export const VIEW_TYPE='study-companion-view';
@@ -127,6 +127,9 @@ export class StudyView extends ItemView {
     const session=this.plugin.session();
     if(session){
       menu.addSeparator();
+      item('按当前知识点推荐课程',async()=>{session.questionDraft='请根据当前知识点推荐课程，精确到课程的章、节和小节标题，并给出可点击链接。';await this.plugin.persist();this.render();this.contentEl.querySelector<HTMLTextAreaElement>('.sc-composer')?.focus({preventScroll:true});});
+      item('录入课程小节链接',()=>new CourseLessonModal(this.plugin).open());
+      item('刷新题库与课程目录',()=>this.plugin.reload());
       item('复制问题与上下文到 ChatGPT / Codex',async()=>{if(!session.questionDraft.trim())throw new Error('先输入本次问题。');await navigator.clipboard.writeText(this.chatPrompt(session,session.questionDraft));new Notice('已复制，可粘贴到 ChatGPT 或 Codex。');});
       item('粘贴外部回答',()=>new TextModal(this.plugin,'粘贴外部回答','回答内容','',async text=>{session.messages.push({id:id(),role:'user',text:session.questionDraft||'外部辅导记录',status:'complete'},{id:id(),role:'assistant',text:'外部回答，内容待核实：\n\n'+text,status:'complete'});session.questionDraft='';await this.plugin.persist();this.render();}).open());
     }
@@ -137,6 +140,7 @@ export class StudyView extends ItemView {
   private chatPrompt(session:Session,question:string,includeRules=true,includeHistory=true){
     const parts:string[]=[];if(includeRules)parts.push(TUTOR_RULES);
     parts.push('本轮资料（JSON）：\n'+sourceContext(session.context,question));
+    if(wantsCourseRecommendation(question))parts.push('可核查课程小节（JSON）：\n'+JSON.stringify(this.plugin.recommendLessons(session.context,question).map(lesson=>({knowledgePoints:lesson.topics,provider:lesson.provider,course:lesson.course,section:lesson.section,lessonTitle:lesson.title,url:lesson.url,catalogNote:lesson.path}))));
     if(includeHistory)parts.push('最近对话（JSON）：\n'+JSON.stringify(session.messages.filter(m=>m.status==='complete').slice(-8).map(m=>({role:m.role,text:m.text.slice(0,4000)}))));
     parts.push('本次问题：\n'+question);return parts.join('\n');
   }
@@ -284,5 +288,18 @@ export class QuestionModal extends Modal {
     field(this.contentEl,'来源 / 页码 / 题号',input.source,text=>{input.source=text;},1);field(this.contentEl,'题干（支持 Markdown 和公式）',input.prompt,text=>{input.prompt=text;},4);
     field(this.contentEl,'参考解答（可稍后完善）',input.solution,text=>{input.solution=text;},3);field(this.contentEl,'第一步提示（可选）',input.hints,text=>{input.hints=text;},2);
     button(this.contentEl,'保存到题库',async()=>{await this.plugin.createQuestion(input);this.close();},true);
+  }
+}
+export class CourseLessonModal extends Modal {
+  constructor(private plugin:StudyPlugin){super(plugin.app);}
+  onOpen(){
+    const session=this.plugin.session();const input={subject:session?.context.subject||'未分科',provider:'',course:'',section:'',title:'',topics:session?.context.title||'',url:''};
+    this.contentEl.createEl('h2',{text:'录入课程小节链接'});
+    label(this.contentEl,'一条记录对应课程中的一个具体小节。请使用能直接打开该节、分P或时间点的链接。');
+    field(this.contentEl,'学科',input.subject,text=>{input.subject=text;},1);field(this.contentEl,'平台或学校',input.provider,text=>{input.provider=text;},1);
+    field(this.contentEl,'课程完整名称',input.course,text=>{input.course=text;},1);field(this.contentEl,'章 / 节（例如：第3章 第2节）',input.section,text=>{input.section=text;},1);
+    field(this.contentEl,'小节标题',input.title,text=>{input.title=text;},1);field(this.contentEl,'知识点（逗号分隔）',input.topics,text=>{input.topics=text;},2);
+    field(this.contentEl,'该小节的直接链接',input.url,text=>{input.url=text;},1);
+    button(this.contentEl,'保存课程小节',async()=>{await this.plugin.createCourseLesson(input);this.close();},true);
   }
 }

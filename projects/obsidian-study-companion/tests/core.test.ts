@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MODE_CONFIG, parseQuestion, parseEvent, serializeEvent, schedule, reviewQueue, validFolder, newContext, prepareContext, sourceContext, type StudyEvent, type Question, type Attempt } from '../src/core';
+import { MODE_CONFIG, parseCourseLesson, parseQuestion, parseEvent, recommendCourseLessons, serializeEvent, schedule, reviewQueue, validFolder, newContext, prepareContext, sourceContext, type StudyEvent, type Question, type Attempt } from '../src/core';
 const base=Date.parse('2026-09-01T08:00:00Z');
 const q:Question={id:'q1',path:'数学/q1.md',title:'测试题',subject:'数学',topic:'求导',kind:'自拟题',source:'测试',prompt:'求 x² 的导数',hints:['考虑差商'],solution:'2x',method:'',reserved:false};
 test('回答模式固定为快速、均衡与深入三档',()=>{
@@ -53,6 +53,19 @@ test('记录位置不能逃离 Vault 或写入隐藏配置目录',()=>{
 });
 test('长笔记的发送截断显式标记且保留选区',()=>{
   const context=newContext('数学/a.md','a','数学','问题选区','x'.repeat(25000));const sent=JSON.parse(sourceContext(context));assert.equal(sent.noteText.length,20000);assert.equal(sent.truncated,true);assert.equal(sent.selection,'问题选区');
+});
+test('课程小节必须有知识点、准确节次和安全网页链接',()=>{
+  const lesson=parseCourseLesson('C语言/课程目录/指针.md',{study_type:'course_lesson',subject:'C语言',provider:'示例平台',course:'C语言程序设计',section:'第3章 第2节',lesson_title:'指针与地址',topics:['指针','内存地址'],url:'https://course.example/lesson/3-2'});
+  assert.equal(lesson?.section,'第3章 第2节');assert.equal(lesson?.url,'https://course.example/lesson/3-2');
+  assert.equal(parseCourseLesson('坏链接.md',{study_type:'course_lesson',course:'课程',section:'第1节',lesson_title:'标题',topics:['知识点'],url:'javascript:alert(1)'}),null);
+});
+test('课程推荐按当前学科和知识点定位到具体小节',()=>{
+  const pointer=parseCourseLesson('C语言/指针.md',{study_type:'course_lesson',subject:'C语言',course:'程序设计',section:'第3章 第2节',lesson_title:'指针与地址',topics:['指针','内存地址'],url:'https://course.example/pointer'})!;
+  const array=parseCourseLesson('C语言/数组.md',{study_type:'course_lesson',subject:'C语言',course:'程序设计',section:'第2章 第4节',lesson_title:'数组',topics:['数组'],url:'https://course.example/array'})!;
+  const math=parseCourseLesson('高数/极限.md',{study_type:'course_lesson',subject:'高等数学',course:'高等数学',section:'第1章 第2节',lesson_title:'极限',topics:['极限'],url:'https://course.example/limit'})!;
+  const context=newContext('C语言/指针.md','指针与函数','C语言','为什么指针保存内存地址','笔记');
+  assert.deepEqual(recommendCourseLessons([array,math,pointer],context,'请推荐对应课程').map(item=>item.url),['https://course.example/pointer']);
+  assert.deepEqual(recommendCourseLessons([pointer],context,'解释一下'),[]);
 });
 test('问候不发送笔记，选区优先于整篇笔记',()=>{
   const context=newContext('数学/a.md','a','数学','导数定义','正文'.repeat(5000));

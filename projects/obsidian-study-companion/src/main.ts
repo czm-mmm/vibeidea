@@ -2,14 +2,15 @@ import { Plugin, MarkdownView, Notice, TFile, WorkspaceLeaf, Modal, normalizePat
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { CodexBridge } from './codex';
-import { DEFAULT_DATA, MODE_CONFIG, id, newContext, parseQuestion, validFolder, type Context, type PluginData, type Question, type Session, type StudyEvent, type TutorMode } from './core';
+import { DEFAULT_DATA, MODE_CONFIG, id, newContext, parseCourseLesson, parseQuestion, recommendCourseLessons, validFolder, type Context, type CourseLesson, type PluginData, type Question, type Session, type StudyEvent, type TutorMode } from './core';
 import { VaultStore } from './storage';
-import { StudyView, DetailView, VIEW_TYPE, DETAIL_TYPE, ConnectionModal, QuestionModal } from './view';
+import { StudyView, DetailView, VIEW_TYPE, DETAIL_TYPE, ConnectionModal, CourseLessonModal, QuestionModal } from './view';
 
 export default class StudyPlugin extends Plugin {
   data:PluginData=structuredClone(DEFAULT_DATA);
   events:StudyEvent[]=[];
   questions:Question[]=[];
+  courseLessons:CourseLesson[]=[];
   store!:VaultStore;
   bridge?:CodexBridge;
   busy=false;
@@ -28,6 +29,7 @@ export default class StudyPlugin extends Plugin {
     this.addCommand({id:'open-study',name:'打开学习侧栏',callback:()=>void this.open()});
     this.addCommand({id:'ask-selection',name:'围绕选区或当前笔记提问',editorCallback:()=>void this.capture().then(()=>this.open()).catch(this.report)});
     this.addCommand({id:'add-question',name:'把选区录入为练习题',editorCallback:()=>new QuestionModal(this).open()});
+    this.addCommand({id:'add-course-lesson',name:'录入课程小节链接',callback:()=>new CourseLessonModal(this).open()});
     this.addCommand({id:'connection',name:'连接 ChatGPT / Codex',callback:()=>new ConnectionModal(this).open()});
     this.registerEvent(this.app.workspace.on('file-open',()=>this.views().forEach(view=>view.updateContextNotice())));
     this.lastNote=this.app.workspace.getActiveViewOfType(MarkdownView)||undefined;
@@ -49,12 +51,15 @@ export default class StudyPlugin extends Plugin {
     const draft=this.data.practice;
     if(draft?.pendingAttempt&&this.events.some(e=>e.type==='attempt'&&e.data.id===draft.pendingAttempt!.id)){draft.attemptId=draft.pendingAttempt.id;draft.pendingAttempt=undefined;await this.persist();}
     if(loaded.invalid)new Notice(`${loaded.invalid} 条记录无法识别，已保留原文件并跳过。`);
-    this.questions=[];const seen=new Set<string>();let duplicates=0;
+    this.questions=[];this.courseLessons=[];const seen=new Set<string>();let duplicates=0;
     for(const file of this.app.vault.getMarkdownFiles()){
       const meta=this.app.metadataCache.getFileCache(file)?.frontmatter;
-      if(meta?.study_type!=='question')continue;
-      const question=parseQuestion(file.path,await this.app.vault.cachedRead(file),meta);
-      if(question){if(seen.has(question.id)){duplicates++;continue;}seen.add(question.id);this.questions.push(question);}
+      if(meta?.study_type==='question'){
+        const question=parseQuestion(file.path,await this.app.vault.cachedRead(file),meta);
+        if(question){if(seen.has(question.id)){duplicates++;continue;}seen.add(question.id);this.questions.push(question);}
+      }else if(meta?.study_type==='course_lesson'){
+        const lesson=parseCourseLesson(file.path,meta);if(lesson)this.courseLessons.push(lesson);
+      }
     }
     if(duplicates)new Notice(`${duplicates} 道题目的编号重复，请检查 question_id；重复题已跳过。`);
     this.redraw();
@@ -83,6 +88,7 @@ export default class StudyPlugin extends Plugin {
     this.data.activeSession=context.id;await this.persist();this.redraw();void this.prewarm(context.id);
   }
   async record(event:StudyEvent){await this.store.append(event);if(!this.events.some(e=>e.id===event.id))this.events.push(event);}
+  recommendLessons(context:Context,question:string){return recommendCourseLessons(this.courseLessons,context,question);}
   async detail(title:string,text:string,sourcePath:string){
     const leaf=this.app.workspace.getLeaf('tab');await leaf.setViewState({type:DETAIL_TYPE,active:true,state:{title,text,sourcePath}});await this.app.workspace.revealLeaf(leaf);
   }
@@ -109,5 +115,14 @@ export default class StudyPlugin extends Plugin {
     const question=parseQuestion(path,text,{study_type:'question',question_id:questionId,subject:input.subject||'未分科',topic:input.topic,source:input.source,question_kind:'自录题'});
     if(question)this.questions.push(question);
     this.redraw();new Notice('题目已保存在 '+file.path);return question;
+  }
+  async createCourseLesson(input:{subject:string;provider:string;course:string;section:string;title:string;topics:string;url:string}){
+    const topics=input.topics.split(/[，,、;]/).map(value=>value.trim()).filter(Boolean);
+    const meta={study_type:'course_lesson',subject:input.subject.trim()||'未分科',provider:input.provider.trim(),course:input.course.trim(),section:input.section.trim(),lesson_title:input.title.trim(),topics,url:input.url.trim()};
+    const folder='课程目录/'+meta.subject.replace(/[\\/:*?"<>|]/g,'-');const name=(meta.course+'-'+meta.section+'-'+meta.lesson_title).replace(/[\\/:*?"<>|]/g,'-');const path=normalizePath(`${folder}/${name}-${id().slice(0,6)}.md`);
+    const lesson=parseCourseLesson(path,meta);if(!lesson)throw new Error('请填写课程、准确节次、小节标题、知识点和有效的 http/https 链接。');
+    await this.store.ensureFolder(folder);
+    const text=`---\nstudy_type: course_lesson\nsubject: ${JSON.stringify(meta.subject)}\nprovider: ${JSON.stringify(meta.provider||'未注明平台')}\ncourse: ${JSON.stringify(meta.course)}\nsection: ${JSON.stringify(meta.section)}\nlesson_title: ${JSON.stringify(meta.lesson_title)}\ntopics: ${JSON.stringify(topics)}\nurl: ${JSON.stringify(lesson.url)}\n---\n\n# ${meta.course} · ${meta.section} · ${meta.lesson_title}\n\n此条目用于按知识点推荐课程；链接和节次已经由使用者录入，后续如课程改版请人工复核。\n`;
+    const file=await this.app.vault.create(path,text);this.courseLessons.push(lesson);new Notice('课程小节已保存在 '+file.path);return lesson;
   }
 }
